@@ -76,7 +76,7 @@ dieser Schritt automatisch; manuell nur bei Bedarf.
 ## Failover greift nicht (Tunnel bricht bei Leitungswechsel)
 
 Die Sophos-DNAT muss `Originales Ziel = Beliebig` haben und **beide** WAN-
-Schnittstellen (StarLink + WAN_P2) als eingehende Schnittstelle. Sonst wird der
+Schnittstellen (Starlink + Backup-WAN) als eingehende Schnittstelle. Sonst wird der
 Verkehr, der nach dem Failover über Starlink kommt, nicht erkannt.
 
 ## RMS-Push meldet „OK", aber nichts passiert

@@ -23,7 +23,7 @@ Teltonika-Router mit Mobilfunk-SIM. Da Mobilfunk hinter CGNAT liegt (keine
                                             └──────────┬───────────┘
                                                        │ BGP
                                                        ▼
-                                            px003 (AS65003) → restl. Netz
+                                            Core-Router (AS65003) → restl. Netz
 ```
 
 ## Adressierung
@@ -45,20 +45,22 @@ Teltonika-Router mit Mobilfunk-SIM. Da Mobilfunk hinter CGNAT liegt (keine
 ## Komponenten
 
 ### Anker A (VM, 172.20.10.20)
-Zentrale Gegenstelle. Läuft auf Proxmox-Host px103 in VLAN 900.
+Zentrale Gegenstelle. Läuft als VM auf einem beliebigen Virtualisierungs-Host
+(Proxmox, VMware, Hyper-V, KVM …) im Server-VLAN (im Beispiel VLAN 900).
 
 - **WireGuard `wg-a1`** (Port 51821): nimmt alle Router-Tunnel an.
-- **FRR (BGP, AS65101)**: verteilt die erreichbaren Standort-Netze an px003 (AS65003).
+- **FRR (BGP, AS65101)**: verteilt die erreichbaren Standort-Netze an Core-Router (AS65003).
 - **Watchdog** (systemd-Timer): annonciert das `/28` eines Standorts per BGP erst,
   wenn dessen Tunnel einen **frischen Handshake** hat. Tote Tunnel werden nicht
   annonciert → kein Blackhole-Routing.
 - **DDNS-Cron**: hält `anker-a.vpn.example.org` auf der aktiven WAN-IP.
 
-### Sophos Firewall (198.51.100.10)
+### Firewall / Gateway (Beispiel: Sophos, 198.51.100.10)
 - **DNAT-Regel** `DNAT-WG-A1`: leitet UDP 51821 → Anker (172.20.10.20).
-  „Originales Ziel = Beliebig", eingehende Schnittstellen StarLink **und** WAN_P2
+  „Originales Ziel = Beliebig", eingehende Schnittstellen Starlink **und** Backup-WAN
   (für Failover über beide Leitungen).
-- **WAN-Failover**: schaltet bei Ausfall von Vodafone automatisch auf Starlink.
+- **WAN-Failover**: schaltet bei Ausfall der primären Leitung automatisch auf die
+  Backup-Leitung (im Beispiel Vodafone → Starlink).
 
 ### Teltonika-Router (RUT241)
 - Mobilfunk über M2M-SIM (APN `wsim`).
@@ -75,7 +77,7 @@ Zentrale Gegenstelle. Läuft auf Proxmox-Host px103 in VLAN 900.
 3. Sophos-DNAT übersetzt Ziel → `172.20.10.20` (Anker).
 4. Anker und Router führen WireGuard-Handshake aus → Tunnel steht.
 5. Watchdog erkennt frischen Handshake → setzt Kernel-Route für das `/28`.
-6. BGP annonciert das `/28` an px003 → Standort ist im ganzen Netz erreichbar.
+6. BGP annonciert das `/28` an Core-Router → Standort ist im ganzen Netz erreichbar.
 
 ## Failover-Mechanik
 

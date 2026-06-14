@@ -67,7 +67,7 @@ anchor_vms:
     self: 172.20.11.2
     wan_endpoints:
     - Vodafone 198.51.100.10:51821
-    - StarLink <ddns>:51822
+    - Starlink <ddns>:51822
   anker_b:
     as: 65102
     standort: Wache 2

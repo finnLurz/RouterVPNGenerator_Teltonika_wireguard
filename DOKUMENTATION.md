@@ -11,7 +11,7 @@ ueber ein Hub-and-Spoke-VPN mit automatischem Rollout via RMS-API.
         |                                          Anker A (172.20.10.20, VLAN 900)
         |                                                   | BGP AS65101
         v                                                   v
-    Sirenensteuerung 192.168.1.12  <--1:1-NAT--  px003 (AS65003) --> restl. Netz
+    Sirenensteuerung 192.168.1.12  <--1:1-NAT--  Core-Router (AS65003) --> restl. Netz
 
 - Supernetz:        192.168.80.0/20
 - Sirenen:          192.168.80.0/24  (je /28 pro Standort)
@@ -74,7 +74,7 @@ Kommandozeile statt Weboberflaeche:
   ip route | grep 192.168.8
   -> erwartet: 192.168.80.x/28 dev wg-a1
 
-### BGP-Annonce zu px003
+### BGP-Annonce zu Core-Router
   sudo vtysh -c 'show ip bgp neighbors 172.20.10.10 advertised-routes' | grep 192.168.8
 
 ### Endpoint-DNS oeffentlich pruefen (NICHT lokal auf der VM!)
@@ -125,7 +125,7 @@ Normal: die Sophos blockt eingehendes ICMP am WAN. WireGuard nutzt UDP
 
 ### Sophos-NAT greift beim Failover nicht
 Die DNAT-Regel DNAT-WG-A1 muss "Originales Ziel = Beliebig" haben und
-BEIDE WAN-Schnittstellen (StarLink + WAN_P2) als eingehende Schnittstelle.
+BEIDE WAN-Schnittstellen (Starlink + Backup-WAN) als eingehende Schnittstelle.
 Sonst kommt der Verkehr ueber Starlink nicht an.
 
 ## 6. Sicherheit
@@ -138,7 +138,7 @@ Sonst kommt der Verkehr ueber Starlink nicht an.
 - NICHTS aus secrets/, out/keys/, out/devices/, out/hub/ gehoert ins Git.
 
 ## 7. Anker-VM Eckdaten
-- Host:        anker-a-mitte, 172.20.10.20/24, VLAN 900, GW 172.20.10.1
+- Host:        anker-a, 172.20.10.20/24, VLAN 900, GW 172.20.10.1
 - Dienste:     wg-a1 (WireGuard), frr (BGP), feldnetz-web (systemd), cron (DDNS)
-- BGP:         AS65101, Peer px003 172.20.10.10 (AS65003)
+- BGP:         AS65101, Peer Core-Router 172.20.10.10 (AS65003)
 - Watchdog:    annonciert /28 erst bei frischem Handshake

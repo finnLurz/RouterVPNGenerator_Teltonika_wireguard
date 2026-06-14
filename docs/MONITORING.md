@@ -11,7 +11,7 @@ Eine Low-Level-Discovery erkennt alle Peers automatisch; pro Peer wird das
 Handshake-Alter überwacht und bei mehr als 5 Minuten ein Alarm ausgelöst.
 
 ### Bestandteile in Zabbix
-- **Host:** `anker-a-mitte` (172.20.10.20)
+- **Host:** `anker-a` (172.20.10.20)
 - **Template:** `Feldnetz WireGuard by Agent`
   - LLD-Regel `wg.discover[a1]` – erkennt alle Peers (alle 5 Min)
   - Item-Prototyp `wg.peer.handshake.age[{#PUBKEY}]` – Handshake-Alter (alle 60s)
@@ -27,7 +27,7 @@ Handshake-Alter überwacht und bei mehr als 5 Minuten ein Alarm ausgelöst.
   ```
 - sudo-Regel (`/etc/sudoers.d/zabbix-wg`): der User `zabbix` darf **nur** dieses
   Skript als root ausführen (für `wg show`).
-- `ServerActive=192.168.5.81` und `Hostname=anker-a-mitte` in
+- `ServerActive=192.168.5.81` und `Hostname=anker-a` in
   `/etc/zabbix/zabbix_agent2.conf`.
 
 ### Lokal testen
@@ -48,8 +48,9 @@ Sophos-DNAT, oder der Router selbst. Siehe [FEHLERBEHEBUNG.md](FEHLERBEHEBUNG.md
   SNMP wird im Generator aktiviert; Zabbix erreicht die Router über ihre
   Service-IPs durch den Tunnel. Hinweis: SNMP-Werte kommen nur, wenn der Tunnel
   steht – der Handshake-Alarm bleibt davon unabhängig.
-- **Sophos, Switches:** per SNMP mit den jeweiligen Zabbix-Templates.
-- **Proxmox-Cluster:** über die Proxmox-Templates.
+- **Firewall, Switches:** per SNMP mit den jeweiligen Zabbix-Templates.
+- **Virtualisierungs-Host/-Cluster:** über das passende Zabbix-Template des
+  eingesetzten Hypervisors (Proxmox, VMware, Hyper-V …).
 
 ## Visualisierung
 
