@@ -1,0 +1,7 @@
+{
+  "apikey": "DEIN_NETCUP_API_KEY",
+  "apipassword": "DEIN_NETCUP_API_PASSWORT",
+  "customernumber": "DEINE_KUNDENNUMMER",
+  "domain": "example.org",
+  "host": "anker-a.vpn"
+}

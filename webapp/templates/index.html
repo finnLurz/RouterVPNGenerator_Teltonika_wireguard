@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feldnetz-Generator</title>
+<style>
+ *{box-sizing:border-box}
+ body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f4f6f9;color:#222}
+ header{background:#1F3864;color:#fff;padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center}
+ header h1{font-size:1.2rem;margin:0}
+ header a{color:#cdd;font-size:.85rem;text-decoration:none}
+ .wrap{max-width:1100px;margin:1.5rem auto;padding:0 1rem}
+ .card{background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:1.3rem;margin-bottom:1.3rem}
+ h2{color:#1F3864;font-size:1rem;margin:0 0 .8rem}
+ table{width:100%;border-collapse:collapse;font-size:.9rem}
+ th{background:#2E75B6;color:#fff;padding:.5rem;text-align:left;font-weight:600}
+ td{padding:.3rem;border-bottom:1px solid #eee}
+ td input,td select{width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px;font-size:.88rem}
+ td.hint input{background:#fafafa;color:#999}
+ .btn{padding:.6rem 1.2rem;border:0;border-radius:6px;font-size:.92rem;cursor:pointer;margin-right:.5rem}
+ .btn-add{background:#eef;color:#1F3864}
+ .btn-save{background:#2E75B6;color:#fff}
+ .btn-gen{background:#1F3864;color:#fff}
+ .btn-dl{background:#2a8;color:#fff;text-decoration:none;display:inline-block}
+ .btn-del{background:#fee;color:#c00;border:0;border-radius:4px;cursor:pointer;padding:.35rem .6rem}
+ .msg{padding:.7rem 1rem;border-radius:6px;margin-bottom:1rem;font-size:.9rem;display:none}
+ .msg.ok{background:#efe;color:#181}
+ .msg.err{background:#fee;color:#c00;white-space:pre-line}
+ .note{font-size:.8rem;color:#888;margin-top:.6rem}
+ pre{background:#1e1e1e;color:#9f9;padding:.8rem;border-radius:6px;font-size:.8rem;overflow:auto;max-height:200px;display:none}
+</style></head><body>
+<header>
+ <h1>Feldnetz-Generator &middot; Feuerwehr Musterstadt</h1>
+ <a href="{{ url_for('logout') }}">Abmelden</a>
+</header>
+<div class="wrap">
+ <div id="msg" class="msg"></div>
+
+ <div class="card">
+  <h2>Standorte</h2>
+  <table id="tbl"><thead><tr>
+    <th style="width:18%">Name</th><th style="width:18%">Typ</th>
+    <th style="width:14%">Index <span style="font-weight:400">(autom.)</span></th>
+    <th style="width:26%">LAN-Subnetz <span style="font-weight:400">(autom.)</span></th>
+    <th style="width:8%"></th>
+  </tr></thead><tbody></tbody></table>
+  <p class="note">Index und Subnetz leer lassen = werden automatisch vergeben. Pflichtfelder: Name + Typ.</p>
+  <div style="margin-top:1rem">
+   <button class="btn btn-add" onclick="addRow()">+ Standort</button>
+   <button class="btn btn-save" onclick="save()">Speichern</button>
+   <button class="btn btn-gen" onclick="gen()">Konfiguration erzeugen</button>
+   <a class="btn btn-dl" id="dl" href="{{ url_for('download') }}" style="display:none">ZIP herunterladen</a>
+  </div>
+  <pre id="log"></pre>
+ </div>
+
+ 
+ <div class="card">
+  <h2>RMS &mdash; Router automatisch holen &amp; konfigurieren</h2>
+  <div id="rms-token-area">
+   <p class="note" id="tok-status">Token-Status wird geprüft…</p>
+   <input id="rms-token" type="password" placeholder="RMS API-Token einfügen"
+          style="width:60%;padding:.5rem;border:1px solid #ccc;border-radius:4px">
+   <button class="btn btn-save" onclick="saveToken()">Token speichern</button>
+  </div>
+  <div style="margin-top:1rem">
+   <input id="rms-prefix" placeholder="Namensfilter, z.B. GW-Mess oder Sire"
+          style="width:38%;padding:.5rem;border:1px solid #ccc;border-radius:4px">
+   <button class="btn btn-add" onclick="discover()">Router aus RMS holen</button>
+  </div>
+  <table id="rms-tbl" style="margin-top:1rem;display:none">
+   <thead><tr><th>Name</th><th>Modell</th><th>Serie</th><th>Status</th><th style="width:22%">Zuordnung</th></tr></thead>
+   <tbody></tbody>
+  </table>
+  <div id="rms-import-area" style="margin-top:1rem;display:none">
+   <button class="btn btn-save" onclick="importSel()">Ausgewählte übernehmen</button>
+   <span class="note" id="rms-count"></span>
+  </div>
+  <div style="margin-top:1rem;border-top:1px solid #eee;padding-top:1rem">
+   <button class="btn btn-gen" onclick="rmsPush(true)">Push (Probelauf)</button>
+   <button class="btn" style="background:#c0392b;color:#fff" onclick="rmsPush(false)">Push (scharf)</button>
+  </div>
+  <pre id="rms-log"></pre>
+ </div>
+
+ <div class="card">
+  <h2>Anker (Tunnel-Endpunkte)</h2>
+  <table><thead><tr><th>ID</th><th>Aktiv</th><th>Endpunkt</th><th>Public Key (automatisch)</th></tr></thead>
+  <tbody>
+  {% for a in anchors %}<tr>
+    <td>{{ a.id }}</td><td>{{ 'ja' if a.active else 'nein' }}</td>
+    <td>{{ a.endpoint_host }}:{{ a.endpoint_port }}</td>
+    <td style="font-family:monospace;font-size:.78rem">{{ a.hub_public_key[:24] }}…</td>
+  </tr>{% endfor %}
+  </tbody></table>
+  <p class="note">Anker werden über die Excel/YAML gepflegt. Public Keys erzeugt das Tool automatisch.</p>
+ </div>
+</div>
+
+<script>
+const PROFILES = {{ profiles|tojson }};
+let sites = {{ sites|tojson }};
+
+function row(s={}){
+ const tb=document.querySelector('#tbl tbody');
+ const tr=document.createElement('tr');
+ const opts=PROFILES.map(p=>`<option ${s.profile===p?'selected':''}>${p}</option>`).join('');
+ tr.innerHTML=`
+  <td><input value="${s.name||''}" placeholder="z.B. sirene13"></td>
+  <td><select>${opts}</select></td>
+  <td class="hint"><input value="${s.site_index??''}" placeholder="auto"></td>
+  <td class="hint"><input value="${s.lan_subnet||''}" placeholder="auto"></td>
+  <td><button class="btn-del" onclick="this.closest('tr').remove()">löschen</button></td>`;
+ tb.appendChild(tr);
+}
+function addRow(){ row({}); }
+function collect(){
+ return [...document.querySelectorAll('#tbl tbody tr')].map(tr=>{
+  const c=tr.querySelectorAll('input,select');
+  const o={name:c[0].value.trim(),profile:c[1].value};
+  if(c[2].value.trim())o.site_index=parseInt(c[2].value);
+  if(c[3].value.trim())o.lan_subnet=c[3].value.trim();
+  return o;
+ }).filter(o=>o.name);
+}
+function show(t,cls){const m=document.getElementById('msg');m.textContent=t;m.className='msg '+cls;m.style.display='block';}
+async function save(){
+ const r=await fetch('/save',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({sites:collect()})});
+ const d=await r.json();
+ if(d.ok)show('Gespeichert.','ok'); else show('Fehler:\n• '+d.errors.join('\n• '),'err');
+ return d.ok;
+}
+async function gen(){
+ if(!await save())return;
+ show('Erzeuge Konfiguration…','ok');
+ const r=await fetch('/generate',{method:'POST'});
+ const d=await r.json();
+ const log=document.getElementById('log');log.style.display='block';log.textContent=d.log;
+ if(d.ok){show('Konfiguration erzeugt. ZIP kann geladen werden.','ok');
+   document.getElementById('dl').style.display='inline-block';}
+ else show('Fehler beim Erzeugen (siehe Log).','err');
+}
+sites.forEach(row); if(!sites.length)addRow();
+
+async function tokStatus(){
+ const r=await fetch('/rms/status');const d=await r.json();
+ document.getElementById('tok-status').textContent =
+   d.has_token ? '✓ Token ist hinterlegt (verschlüsselt).' : '⚠ Noch kein Token hinterlegt.';
+}
+async function saveToken(){
+ const t=document.getElementById('rms-token').value.trim();
+ if(!t){show('Bitte Token eingeben.','err');return;}
+ const r=await fetch('/rms/token',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({token:t})});
+ const d=await r.json();
+ show(d.msg, d.ok?'ok':'err'); document.getElementById('rms-token').value='';
+ tokStatus();
+}
+async function discover(){
+ const log=document.getElementById('rms-log');log.style.display='block';log.textContent='Lese Router aus RMS…';
+ const pre=document.getElementById('rms-prefix').value.trim();
+ const r=await fetch('/rms/devices'+(pre?('?prefix='+encodeURIComponent(pre)):''));
+ const d=await r.json();
+ if(!d.ok){log.textContent=d.msg||'Fehler';return;}
+ const tb=document.querySelector('#rms-tbl tbody');tb.innerHTML='';
+ d.devices.forEach(dev=>{
+  const tr=document.createElement('tr');
+  const onl = dev.status==='online';
+  tr.innerHTML=`
+   <td>${dev.name}</td><td>${dev.model}</td><td>${dev.series}</td>
+   <td style="color:${onl?'#181':'#c00'}">${dev.status}</td>
+   <td><select data-name="${dev.name}">
+     <option value="ignore">— ignorieren —</option>
+     <option value="sirene">Sirene</option>
+     <option value="fahrzeug">Fahrzeug</option>
+   </select></td>`;
+  tb.appendChild(tr);
+ });
+ document.getElementById('rms-tbl').style.display='table';
+ document.getElementById('rms-import-area').style.display='block';
+ document.getElementById('rms-count').textContent=d.devices.length+' Router gefunden.';
+ log.textContent='';
+}
+async function importSel(){
+ const sel=[...document.querySelectorAll('#rms-tbl select')]
+   .map(s=>({name:s.dataset.name,type:s.value}))
+   .filter(x=>x.type!=='ignore');
+ if(!sel.length){show('Nichts ausgewählt.','err');return;}
+ const r=await fetch('/rms/import',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({selection:sel})});
+ const d=await r.json();
+ if(d.ok){show(d.added+' Router übernommen. Seite lädt neu…','ok');
+   setTimeout(()=>location.reload(),1200);}
+ else show(d.msg||'Fehler beim Übernehmen','err');
+}
+async function rmsPush(dry){
+ const log=document.getElementById('rms-log');log.style.display='block';
+ log.textContent=dry?'Probelauf…':'Sende an Geräte…';
+ const r=await fetch('/rms/push',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({dry:dry})});
+ const d=await r.json();log.textContent=d.output;
+ show(dry?'Probelauf fertig (nichts gesendet).':'Push abgeschlossen.', d.ok?'ok':'err');
+}
+tokStatus();
+
+</script>
+</body></html>

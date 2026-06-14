@@ -1,0 +1,6 @@
+model: RUTX
+series: RUTXxx
+wg_proto: wireguard
+lan_iface: lan
+has_wifi: true
+notes: "Dual-SIM, WLAN, mehr Ports. WLAN wird vorsorglich deaktiviert (BOS)."

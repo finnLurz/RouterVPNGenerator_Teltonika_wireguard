@@ -1,0 +1,6 @@
+model: RUT241
+series: RUT2xx
+wg_proto: wireguard
+lan_iface: lan
+has_wifi: false
+notes: "1x SIM, kein WLAN. Basis-Modell fuer Sirenen/Fahrzeuge."

@@ -1,0 +1,6 @@
+model: RUT9
+series: RUT9xx
+wg_proto: wireguard
+lan_iface: lan
+has_wifi: true
+notes: "RUT955/956 etc. WLAN deaktivieren, sonst wie RUT241."

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feldnetz-Generator - Anmeldung</title>
+<style>
+ body{font-family:system-ui,Arial,sans-serif;background:#1F3864;display:flex;
+   align-items:center;justify-content:center;height:100vh;margin:0}
+ .box{background:#fff;padding:2.5rem;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.3);width:320px}
+ h1{color:#1F3864;font-size:1.3rem;margin:0 0 .3rem}
+ p.sub{color:#888;font-size:.85rem;margin:0 0 1.5rem}
+ input{width:100%;padding:.7rem;margin:.4rem 0;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;font-size:1rem}
+ button{width:100%;padding:.8rem;background:#2E75B6;color:#fff;border:0;border-radius:6px;font-size:1rem;cursor:pointer;margin-top:.6rem}
+ button:hover{background:#1F3864}
+ .err{background:#fde;color:#c00;padding:.6rem;border-radius:6px;font-size:.85rem;margin-bottom:1rem}
+</style></head><body>
+<form class="box" method="post">
+ <h1>Feldnetz-Generator</h1>
+ <p class="sub">Feuerwehr Musterstadt - interner Zugang</p>
+ {% with m = get_flashed_messages() %}{% if m %}<div class="err">{{ m[0] }}</div>{% endif %}{% endwith %}
+ <input name="user" placeholder="Benutzer" autofocus>
+ <input name="pass" type="password" placeholder="Passwort">
+ <button type="submit">Anmelden</button>
+</form></body></html>

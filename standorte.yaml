@@ -1,0 +1,78 @@
+global:
+  keepalive: 25
+  routes_central:
+  - 192.168.0.0/20
+  - 192.168.16.0/20
+  - 192.168.32.0/20
+  - 192.168.48.0/20
+  - 192.168.64.0/20
+  tunnel_net_prefix: '10.80'
+  hub_host_octet: 254
+  watchdog_interval_s: 30
+  watchdog_fail_threshold: 3
+  watchdog_recover_threshold: 4
+anchors:
+- id: a1
+  path_id: 1
+  active: true
+  endpoint_host: anker-a.vpn.example.org
+  endpoint_port: 51821
+  hub_public_key: __HUB_A1_PUBLIC_KEY__
+  metric: 10
+  description: ''
+  endpoint_mode: name
+- id: a2
+  path_id: 2
+  active: false
+  endpoint_host: hub-a2.example.ddns
+  endpoint_port: 51822
+  hub_public_key: __HUB_A2_PUBLIC_KEY__
+  metric: 20
+  description: ''
+- id: b1
+  path_id: 3
+  active: false
+  endpoint_host: __WACHE_B_IP__
+  endpoint_port: 51821
+  hub_public_key: __HUB_B1_PUBLIC_KEY__
+  metric: 30
+  description: ''
+profiles:
+  sirene:
+    lan_mask: 28
+    fw_zone_lan: lan
+    keep_internal_lan: 192.168.1.0/24
+    service_target: 192.168.1.12
+    service_offset: 2
+  fahrzeug:
+    lan_mask: 27
+    fw_zone_lan: lan
+    guest_subnet: 192.168.99.0/24
+    routed: true
+sites:
+- name: Standort-01
+  profile: sirene
+  site_index: 11
+  lan_subnet: 192.168.80.0/28
+- name: Standort-02
+  profile: sirene
+  site_index: 12
+  lan_subnet: 192.168.80.16/28
+anchor_vms:
+  anker_a:
+    as: 65101
+    standort: Wache Mitte
+    transfer_net: 172.20.11.0/30
+    peer_px: 172.20.11.1
+    self: 172.20.11.2
+    wan_endpoints:
+    - Vodafone 198.51.100.10:51821
+    - StarLink <ddns>:51822
+  anker_b:
+    as: 65102
+    standort: Wache 2
+    transfer_net: 172.20.12.0/30
+    peer_px: 172.20.12.1
+    self: 172.20.12.2
+    wan_endpoints:
+    - DSL <wache-b-ip>:51821
