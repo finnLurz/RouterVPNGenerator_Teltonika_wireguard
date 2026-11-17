@@ -47,6 +47,11 @@ Datei /etc/systemd/system/feldnetz-web.service:
 - FELDNETZ_BIND = interne/VPN-IP, NIE 0.0.0.0 oder oeffentlich.
 - Firewall: Port 8080 nur aus dem Verwaltungs-/VPN-Netz erlauben.
 - Optional: hinter Nginx mit HTTPS (selbstsigniert/interne CA).
+  Dann zusaetzlich `FELDNETZ_HTTPS=1` setzen (Sitzungs-Cookie nur per HTTPS).
+  Ohne HTTPS diese Variable NICHT setzen, sonst klappt die Anmeldung nicht.
+- CSRF-Schutz ist eingebaut: jedes Formular/jeder POST traegt ein Sitzungs-Token,
+  das Cookie ist SameSite=Lax und HttpOnly. FELDNETZ_SECRET fest setzen, sonst
+  sind nach jedem Neustart alle Sitzungen (und Tokens) ungueltig.
 - Die erzeugten Keys liegen in out/ auf der VM - Zugriff auf die VM beschraenken.
 
 ## Was die Oberflaeche kann

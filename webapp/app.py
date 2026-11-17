@@ -4,10 +4,10 @@ Feldnetz-Generator - Web-Oberflaeche (Flask)
 Self-hosted, NUR intern/VPN betreiben. Login-geschuetzt.
 Bedienung ohne Terminal: Standorte bearbeiten -> Generieren -> ZIP laden.
 """
-import os, sys, io, json, zipfile, subprocess, ipaddress, secrets, functools
+import os, sys, io, json, zipfile, subprocess, ipaddress, secrets, functools, hmac
 from datetime import datetime
 from flask import (Flask, render_template, request, redirect, url_for,
-                   session, send_file, flash, jsonify)
+                   session, send_file, flash, jsonify, abort)
 import yaml, subprocess as _sp
 sys_path = os.path.dirname(BASE) if False else None
 
@@ -21,6 +21,53 @@ app.secret_key = os.environ.get("FELDNETZ_SECRET", secrets.token_hex(32))
 # Login: Passwort-Hash aus Umgebungsvariable (vom Setup gesetzt)
 APP_USER = os.environ.get("FELDNETZ_USER", "admin")
 APP_PASS = os.environ.get("FELDNETZ_PASS", "")  # MUSS gesetzt sein
+
+# Sitzungs-Cookie: nicht per JS lesbar, bei fremden POSTs nicht mitgeschickt.
+# Secure nur, wenn die App per HTTPS erreichbar ist (z. B. hinter Nginx),
+# sonst wuerde der Browser das Cookie ueber HTTP gar nicht zuruecksenden.
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("FELDNETZ_HTTPS", "").strip().lower()
+    in ("1", "true", "yes", "ja"),
+)
+
+# CSRF-Schutz: ein Token je Sitzung. Formulare senden es als verstecktes
+# Feld "csrf_token", fetch()-Aufrufe als Header "X-CSRF-Token".
+CSRF_FIELD = "csrf_token"
+CSRF_HEADER = "X-CSRF-Token"
+CSRF_METHODS = ("POST", "PUT", "PATCH", "DELETE")
+
+
+def csrf_token():
+    tok = session.get(CSRF_FIELD)
+    if not tok:
+        tok = secrets.token_urlsafe(32)
+        session[CSRF_FIELD] = tok
+    return tok
+
+
+app.jinja_env.globals["csrf_token"] = csrf_token
+
+
+@app.before_request
+def csrf_protect():
+    if request.method not in CSRF_METHODS:
+        return None
+    expected = session.get(CSRF_FIELD)
+    given = request.headers.get(CSRF_HEADER) or request.form.get(CSRF_FIELD)
+    if (expected and given and
+            hmac.compare_digest(given.encode("utf-8"), expected.encode("utf-8"))):
+        return None
+    msg = "CSRF-Pruefung fehlgeschlagen - Seite neu laden und erneut versuchen."
+    if request.path == "/login":
+        abort(400, msg)
+    return jsonify(ok=False, msg=msg, errors=[msg], log=msg, output=msg), 400
+
+
+def _gleich(a, b):
+    """Zeitkonstanter Vergleich, auch fuer Nicht-ASCII-Text."""
+    return hmac.compare_digest(str(a).encode("utf-8"), str(b).encode("utf-8"))
 
 
 def login_required(f):
@@ -108,8 +155,11 @@ def validate(sites):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if (request.form.get("user") == APP_USER and
-                APP_PASS and request.form.get("pass") == APP_PASS):
+        user_ok = _gleich(request.form.get("user", ""), APP_USER)
+        pass_ok = _gleich(request.form.get("pass", ""), APP_PASS)
+        if APP_PASS and user_ok and pass_ok:
+            # Neue Sitzung (inkl. neuem CSRF-Token) gegen Session-Fixation
+            session.clear()
             session["auth"] = True
             return redirect(url_for("index"))
         flash("Login fehlgeschlagen.")

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Feldnetz-Generator</title>
 <style>
  *{box-sizing:border-box}
@@ -97,6 +98,7 @@
 </div>
 
 <script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const PROFILES = {{ profiles|tojson }};
 let sites = {{ sites|tojson }};
 
@@ -124,7 +126,7 @@ function collect(){
 }
 function show(t,cls){const m=document.getElementById('msg');m.textContent=t;m.className='msg '+cls;m.style.display='block';}
 async function save(){
- const r=await fetch('/save',{method:'POST',headers:{'Content-Type':'application/json'},
+ const r=await fetch('/save',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
    body:JSON.stringify({sites:collect()})});
  const d=await r.json();
  if(d.ok)show('Gespeichert.','ok'); else show('Fehler:\n• '+d.errors.join('\n• '),'err');
@@ -133,7 +135,7 @@ async function save(){
 async function gen(){
  if(!await save())return;
  show('Erzeuge Konfiguration…','ok');
- const r=await fetch('/generate',{method:'POST'});
+ const r=await fetch('/generate',{method:'POST',headers:{'X-CSRF-Token':CSRF}});
  const d=await r.json();
  const log=document.getElementById('log');log.style.display='block';log.textContent=d.log;
  if(d.ok){show('Konfiguration erzeugt. ZIP kann geladen werden.','ok');
@@ -150,7 +152,7 @@ async function tokStatus(){
 async function saveToken(){
  const t=document.getElementById('rms-token').value.trim();
  if(!t){show('Bitte Token eingeben.','err');return;}
- const r=await fetch('/rms/token',{method:'POST',headers:{'Content-Type':'application/json'},
+ const r=await fetch('/rms/token',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
    body:JSON.stringify({token:t})});
  const d=await r.json();
  show(d.msg, d.ok?'ok':'err'); document.getElementById('rms-token').value='';
@@ -186,7 +188,7 @@ async function importSel(){
    .map(s=>({name:s.dataset.name,type:s.value}))
    .filter(x=>x.type!=='ignore');
  if(!sel.length){show('Nichts ausgewählt.','err');return;}
- const r=await fetch('/rms/import',{method:'POST',headers:{'Content-Type':'application/json'},
+ const r=await fetch('/rms/import',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
    body:JSON.stringify({selection:sel})});
  const d=await r.json();
  if(d.ok){show(d.added+' Router übernommen. Seite lädt neu…','ok');
@@ -196,7 +198,7 @@ async function importSel(){
 async function rmsPush(dry){
  const log=document.getElementById('rms-log');log.style.display='block';
  log.textContent=dry?'Probelauf…':'Sende an Geräte…';
- const r=await fetch('/rms/push',{method:'POST',headers:{'Content-Type':'application/json'},
+ const r=await fetch('/rms/push',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
    body:JSON.stringify({dry:dry})});
  const d=await r.json();log.textContent=d.output;
  show(dry?'Probelauf fertig (nichts gesendet).':'Push abgeschlossen.', d.ok?'ok':'err');

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Netz-Assistent</title>
 <style>
  *{box-sizing:border-box}
@@ -104,7 +105,7 @@ function toggleMode(){var d=document.getElementById('mode').value;document.getEl
 function calc(){
  var body={mode:document.getElementById('mode').value,routers:+document.getElementById('routers').value,
   devices:+document.getElementById('devices').value,host_prefix:+document.getElementById('host_prefix').value};
- fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+ fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify(body)})
  .then(r=>r.json()).then(j=>{
   if(!j.ok){msg(j.msg||'Fehler',false);return;}
   var o=document.getElementById('out');
@@ -121,7 +122,7 @@ function makePool(){
   profile:document.getElementById('p_profile').value,supernet:document.getElementById('p_supernet').value,
   host_prefix:+document.getElementById('p_hostprefix').value,index_start:+document.getElementById('p_idx').value,
   advertise:document.getElementById('p_adv').checked};
- fetch('/api/pool',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+ fetch('/api/pool',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify(body)})
  .then(r=>r.json()).then(j=>{
   if(!j.ok){msg(j.msg||'Fehler',false);return;}
   msg('Pool "'+j.pool.name+'" angelegt ('+j.pool.supernet+', /'+j.pool.host_prefix+' je Standort).',true);
